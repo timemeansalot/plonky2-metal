@@ -6,18 +6,20 @@ Apple Silicon (Metal) GPU-accelerated fork of [elliottech/plonky2](https://githu
 
 Tested on the [lighter-prover](https://github.com/elliottech/lighter-prover) benchmark (500 txs, 125 proving iterations). See [GPU_BENCHMARK_RESULTS.md](./GPU_BENCHMARK_RESULTS.md) for full details.
 
+Speedup varies ~21-28% across runs due to thermal/load conditions; we report the conservative end.
+
 | Configuration | Total Proving Time | Speedup vs CPU |
 |--------------|-------------------|----------------|
-| CPU-only | 653.5s | baseline |
-| GPU Metal (Merkle + Quotient) | 471.6s | **1.39x (27.8% faster)** |
+| CPU-only | 634.3s | baseline |
+| GPU Metal (Merkle + Quotient) | 498.8s | **1.27x (21.3% faster)** |
 
 ### Per-Circuit Breakdown
 
 | Circuit | CPU-only | GPU Metal | Speedup |
 |---------|----------|-----------|---------|
-| BlockTxCircuit | avg 4.43s | avg 3.20s | **1.39x (27.9%)** |
-| BlockTxChainCircuit | avg 788ms | avg 572ms | **1.38x (27.4%)** |
-| BlockPreExecutionCircuit | 774ms | 674ms | **1.15x (12.9%)** |
+| BlockTxCircuit | avg 4.29s | avg 3.39s | **1.27x (21.1%)** |
+| BlockTxChainCircuit | avg 774ms | avg 599ms | **1.29x (22.6%)** |
+| BlockPreExecutionCircuit | 859ms | 728ms | **1.18x (15.3%)** |
 
 ## What's Accelerated
 
@@ -45,10 +47,7 @@ If conditions are not met, the code falls back to the original CPU path. On non-
 Add `features = ["metal"]` to your plonky2 dependency:
 
 ```toml
-# Before (CPU-only):
-plonky2 = { git = "https://github.com/timemeansalot/plonky2-metal", package = "plonky2" }
-
-# After (GPU-accelerated):
+# GPU-accelerated:
 plonky2 = { git = "https://github.com/timemeansalot/plonky2-metal", package = "plonky2", features = ["metal"] }
 ```
 
