@@ -21,6 +21,12 @@ Speedup varies ~21-28% across runs due to thermal/load conditions; we report the
 | BlockTxChainCircuit | avg 774ms | avg 599ms | **1.29x (22.6%)** |
 | BlockPreExecutionCircuit | 859ms | 728ms | **1.18x (15.3%)** |
 
+### GPU Usage (Metal on vs off)
+
+![GPU Usage](gpu_usage.png)
+
+Left: Metal enabled — GPU actively used for Merkle hashing and quotient polynomial evaluation. Right: Metal disabled — GPU idle, all work on CPU.
+
 ## What's Accelerated
 
 Two proving steps are offloaded to the Metal GPU:
