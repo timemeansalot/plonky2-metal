@@ -3,6 +3,8 @@
 
 mod arch;
 pub mod batch_merkle_tree;
+#[cfg(feature = "metal")]
+pub(crate) mod metal;
 pub mod hash_types;
 pub mod hashing;
 pub mod keccak;

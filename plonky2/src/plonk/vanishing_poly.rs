@@ -703,28 +703,101 @@ pub fn evaluate_gate_constraints_base_batch<F: RichField + Extendable<D>, const 
     common_data: &CommonCircuitData<F, D>,
     vars_batch: EvaluationVarsBaseBatch<F>,
 ) -> Vec<F> {
-    let mut constraints_batch = vec![F::ZERO; common_data.num_gate_constraints * vars_batch.len()];
-    for (i, gate) in common_data.gates.iter().enumerate() {
-        let selector_index = common_data.selectors_info.selector_indices[i];
-        let gate_constraints_batch = gate.0.eval_filtered_base_batch(
-            vars_batch,
-            i,
-            selector_index,
-            common_data.selectors_info.groups[selector_index].clone(),
-            common_data.selectors_info.num_selectors(),
-            common_data.num_lookup_selectors,
-        );
-        debug_assert!(
-            gate_constraints_batch.len() <= constraints_batch.len(),
-            "num_constraints() gave too low of a number"
-        );
-        // below adds all constraints for all points
-        batch_add_inplace(
-            &mut constraints_batch[..gate_constraints_batch.len()],
-            &gate_constraints_batch,
-        );
+    // Gate profiling: accumulate per-gate timing using thread-local storage
+    #[cfg(feature = "timing")]
+    {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        use std::sync::OnceLock;
+
+        // Up to 64 gate types, each gets a cumulative nanosecond counter
+        static GATE_TIMINGS: OnceLock<Vec<AtomicU64>> = OnceLock::new();
+        static GATE_NAMES: OnceLock<Vec<String>> = OnceLock::new();
+        static CALL_COUNT: AtomicU64 = AtomicU64::new(0);
+        static TOTAL_CALLS: AtomicU64 = AtomicU64::new(0);
+
+        let num_gates = common_data.gates.len();
+        let timings = GATE_TIMINGS.get_or_init(|| {
+            (0..64).map(|_| AtomicU64::new(0)).collect()
+        });
+        let names = GATE_NAMES.get_or_init(|| {
+            common_data.gates.iter().map(|g| g.0.id()).collect()
+        });
+        TOTAL_CALLS.fetch_add(1, Ordering::Relaxed);
+
+        let mut constraints_batch = vec![F::ZERO; common_data.num_gate_constraints * vars_batch.len()];
+        for (i, gate) in common_data.gates.iter().enumerate() {
+            let selector_index = common_data.selectors_info.selector_indices[i];
+            let start = web_time::Instant::now();
+            let gate_constraints_batch = gate.0.eval_filtered_base_batch(
+                vars_batch,
+                i,
+                selector_index,
+                common_data.selectors_info.groups[selector_index].clone(),
+                common_data.selectors_info.num_selectors(),
+                common_data.num_lookup_selectors,
+            );
+            let elapsed_ns = start.elapsed().as_nanos() as u64;
+            if i < 64 {
+                timings[i].fetch_add(elapsed_ns, Ordering::Relaxed);
+            }
+            debug_assert!(
+                gate_constraints_batch.len() <= constraints_batch.len(),
+                "num_constraints() gave too low of a number"
+            );
+            batch_add_inplace(
+                &mut constraints_batch[..gate_constraints_batch.len()],
+                &gate_constraints_batch,
+            );
+        }
+
+        // Print gate profile every 2000 calls
+        let count = CALL_COUNT.fetch_add(1, Ordering::Relaxed) + 1;
+        if count % 2000 == 0 {
+            let mut gate_times: Vec<(String, f64)> = names.iter().enumerate()
+                .take(num_gates)
+                .map(|(i, name)| {
+                    let ns = timings[i].load(Ordering::Relaxed) as f64;
+                    (name.clone(), ns / 1_000_000_000.0)
+                })
+                .collect();
+            gate_times.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+            let total: f64 = gate_times.iter().map(|(_, t)| *t).sum();
+            log::info!("=== GATE PROFILE (after {} batches, {:.2}s total) ===",
+                TOTAL_CALLS.load(Ordering::Relaxed), total);
+            for (name, time) in &gate_times {
+                let pct = time / total * 100.0;
+                if pct >= 0.1 {
+                    log::info!("  {:>6.2}% ({:>8.3}s) {}", pct, time, name);
+                }
+            }
+        }
+        return constraints_batch;
     }
-    constraints_batch
+
+    #[cfg(not(feature = "timing"))]
+    {
+        let mut constraints_batch = vec![F::ZERO; common_data.num_gate_constraints * vars_batch.len()];
+        for (i, gate) in common_data.gates.iter().enumerate() {
+            let selector_index = common_data.selectors_info.selector_indices[i];
+            let gate_constraints_batch = gate.0.eval_filtered_base_batch(
+                vars_batch,
+                i,
+                selector_index,
+                common_data.selectors_info.groups[selector_index].clone(),
+                common_data.selectors_info.num_selectors(),
+                common_data.num_lookup_selectors,
+            );
+            debug_assert!(
+                gate_constraints_batch.len() <= constraints_batch.len(),
+                "num_constraints() gave too low of a number"
+            );
+            batch_add_inplace(
+                &mut constraints_batch[..gate_constraints_batch.len()],
+                &gate_constraints_batch,
+            );
+        }
+        constraints_batch
+    }
 }
 
 pub fn evaluate_gate_constraints_circuit<F: RichField + Extendable<D>, const D: usize>(
