@@ -15,11 +15,11 @@ Speedup varies ~21-28% across runs due to thermal/load conditions; we report the
 
 ### Per-Circuit Breakdown
 
-| Circuit | CPU-only | GPU Metal | Speedup |
-|---------|----------|-----------|---------|
-| BlockTxCircuit | avg 4.29s | avg 3.39s | **1.27x (21.1%)** |
-| BlockTxChainCircuit | avg 774ms | avg 599ms | **1.29x (22.6%)** |
-| BlockPreExecutionCircuit | 859ms | 728ms | **1.18x (15.3%)** |
+| Circuit | Iterations | Size | CPU-only | GPU Metal | Speedup |
+|---------|-----------|------|----------|-----------|---------|
+| BlockTxCircuit | 125 | Large (degree 2^16) | avg 4.29s | avg 3.39s | **1.27x (21.1%)** |
+| BlockTxChainCircuit | 125 | Small (degree 2^14) | avg 774ms | avg 599ms | **1.29x (22.6%)** |
+| BlockPreExecutionCircuit | 1 | Small (degree 2^14) | 859ms | 728ms | **1.18x (15.3%)** |
 
 ### GPU Usage (Metal on vs off)
 
