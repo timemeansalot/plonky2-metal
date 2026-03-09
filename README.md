@@ -4,7 +4,7 @@ Apple Silicon (Metal) GPU-accelerated fork of [elliottech/plonky2](https://githu
 
 ## Benchmark Results
 
-Tested on the lighter-prover benchmark (500 txs, 125 proving iterations):
+Tested on the [lighter-prover](https://github.com/elliottech/lighter-prover) benchmark (500 txs, 125 proving iterations). See [GPU_BENCHMARK_RESULTS.md](./GPU_BENCHMARK_RESULTS.md) for full details.
 
 | Configuration | Total Proving Time | Speedup vs CPU |
 |--------------|-------------------|----------------|
