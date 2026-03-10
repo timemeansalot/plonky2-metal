@@ -1,6 +1,13 @@
 # 🍎 Metal GPU Benchmark Guide for lighter-prover
 
-How to run the GPU-accelerated lighter-prover benchmark on your Mac.
+## Goal
+
+Run the lighter-prover benchmark **twice** on your Mac and compare:
+
+1. **CPU-only baseline** — upstream plonky2, no GPU acceleration
+2. **Metal GPU** — plonky2-metal fork with `features = ["metal"]`, GPU-accelerated Merkle Poseidon2 + Quotient Polynomial
+
+Compare the total proving time and per-circuit averages (BlockTxCircuit, BlockTxChainCircuit) between the two runs. We expect **1.5-1.6x speedup** with Metal GPU on Apple Silicon. Reboot the machine before each run for reproducible cold-start numbers.
 
 ## Prerequisites
 
@@ -93,7 +100,14 @@ CPU-only baseline (without Metal): ~602s total.
 ## Tips
 
 - **Reboot before benchmarking** for reproducible cold-start numbers. Thermal conditions can affect results.
-- **CPU-only comparison** — to run without GPU, remove `features = ["metal"]` from the plonky2 dependency and comment out the `[patch]` section, then rebuild.
+- **CPU-only baseline** — to run without GPU, edit `lighter-prover/Cargo.toml`:
+  1. Remove `features = ["metal"]` from the plonky2 dependency (line ~34)
+  2. Remove the entire `[patch."https://github.com/elliottech/plonky2"]` section at the bottom
+  3. Rebuild and run:
+  ```bash
+  RUST_LOG=info cargo run --bin bench --release
+  ```
+  Compare the total time against the GPU run to measure the speedup.
 
 ## Directory Layout
 
